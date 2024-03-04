@@ -64,7 +64,7 @@
 // apicall();
 
 
-// require('dotenv').config();
+require('dotenv').config();
 // app.use(bodyParser.json());
 // app.use(cors({ origin: '*' }));
 
@@ -128,7 +128,7 @@
 // }
 
 // const fun=async()=>{
-//     const finalMessage= await callGpt('gpt-3.5-turbo', "You give very short answers","tell me in which state in india have high temperature and give me it's temperature");
+//     const finalMessage= await callGpt('gpt-3.5-turbo', "You give very short answers"," give me weather of all cities with city names  delhi, mumbai,Bangalore ");
 // console.log("hi")
 // console.log("final message",finalMessage)
 // }
@@ -186,7 +186,6 @@ async function callGpt(model, systemPrompt, userPrompt) {
 
         messages.push(responseMessage);
 
-        // Check if the finish reason is 'stop'
         if (response.choices[0]?.finish_reason === 'stop') {
             return responseMessage;
         }
@@ -223,15 +222,49 @@ async function callGpt(model, systemPrompt, userPrompt) {
 //     }
 // });
 
+
+/// it is main working code 
+// app.post('/askGpt', async (req, res) => {
+//     try {
+//         const { currentMessage, recentMessage } = req.body;
+//         console.log(req.body);
+
+//         // Initialize messages array
+//         let messages = [];
+
+//         // Add recent message to messages array if available
+//         if (recentMessage) {
+//             messages.push({
+//                 role: "user",
+//                 content: recentMessage
+//             });
+//         }
+
+//         // Add current message to messages array
+//         messages.push({
+//             role: "user",
+//             content: currentMessage
+//         });
+
+//         // Call GPT function
+//         const systemPrompt = "You give very short answers";
+//         const model = 'gpt-3.5-turbo';
+//         const finalMessage = await callGpt(model, systemPrompt, JSON.stringify(messages));
+
+//         console.log("finalmessage", finalMessage);
+//         res.json({ success: true, message: finalMessage.content });
+//     } catch (error) {
+//         console.log(error.message);
+//         res.status(500).json({ error: error.message });
+//     }
+// });
+
 app.post('/askGpt', async (req, res) => {
     try {
         const { currentMessage, recentMessage } = req.body;
         console.log(req.body);
-
-        // Initialize messages array
         let messages = [];
 
-        // Add recent message to messages array if available
         if (recentMessage) {
             messages.push({
                 role: "user",
@@ -239,25 +272,37 @@ app.post('/askGpt', async (req, res) => {
             });
         }
 
-        // Add current message to messages array
         messages.push({
             role: "user",
             content: currentMessage
         });
 
-        // Call GPT function
+        
         const systemPrompt = "You give very short answers";
         const model = 'gpt-3.5-turbo';
-        const finalMessage = await callGpt(model, systemPrompt, currentMessage);
+        console.log("hey i am the message box",messages)
+        const finalMessage = await callGpt(model, systemPrompt, JSON.stringify(messages));
 
         console.log("finalmessage", finalMessage);
-        res.json({ success: true, message: finalMessage.content });
+
+        let messageContent = finalMessage.content;
+        try {
+        
+            const parsedContent = JSON.parse(messageContent);
+
+            if (parsedContent.main && parsedContent.weather && parsedContent.name) {
+                messageContent = `The current temperature in ${parsedContent.name} is ${parsedContent.main.temp}°C and the weather is ${parsedContent.weather[0].main}.`;
+            }
+        } catch (error) {
+            // Content is not JSON, use it as is
+        }
+
+        res.json({ success: true, message: messageContent });
     } catch (error) {
         console.log(error.message);
         res.status(500).json({ error: error.message });
     }
 });
-
 
 
 app.listen(port, () => {
